@@ -64,6 +64,9 @@ def client():
     from app.database import Base, engine
     from app.main import app
 
+    from app.rate_limit import reset_all
+
+    reset_all()
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     with TestClient(app) as test_client:

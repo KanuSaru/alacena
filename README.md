@@ -111,6 +111,22 @@ Todas están documentadas en [`.env.example`](.env.example). El archivo `.env` e
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL` | Proveedor y modelo del LLM |
 | `LLM_TIMEOUT_SECONDS` | Tiempo máximo de espera al LLM |
 
+## Seguridad
+
+| Amenaza | Defensa |
+|---|---|
+| Prompt injection por el nombre de un ingrediente | Solo letras, espacios y guiones; máximo 4 palabras y 40 caracteres; se rechazan palabras como "ignora", "instrucciones", "eres", "responde" |
+| Instrucciones que logren pasar al prompt | El inventario va entre `<inventario>` y el prompt de sistema ordena tratarlo como datos y no seguir instrucciones dentro de él |
+| Respuesta manipulada del LLM | El JSON se valida con Pydantic y se rechaza (502, sin guardar) si usa ingredientes que no están en la alacena |
+| XSS | Todo el contenido del usuario y del LLM se pinta con `textContent`; CSP sin scripts en línea |
+| Fuerza bruta en el login | Máximo 10 intentos por minuto por IP y por usuario (429) |
+| Abuso de la cuota del LLM | Máximo 5 recetas por minuto y 50 por día por usuario |
+| Enumeración de usuarios | Mensaje de error genérico y comparación contra un hash ficticio para igualar el tiempo de respuesta |
+| Acceso a datos de otros usuarios (IDOR) | Toda consulta filtra por `user_id`; un recurso ajeno responde 404 |
+| Inyección SQL | Consultas con el ORM de SQLAlchemy (parámetros, nunca SQL concatenado) |
+| Clickjacking / MIME sniffing | `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`, HSTS |
+| Credenciales expuestas | Secretos solo en variables de entorno; el repositorio incluye únicamente `.env.example` |
+
 ## Decisiones técnicas
 
 - **Servicio LLM encapsulado:** el prompt es fijo y solo recibe el inventario validado; la respuesta se valida con Pydantic antes de guardarse. Si el JSON llega mal formado se reintenta una vez; si falla, la API responde 502 y no guarda nada.
