@@ -4,8 +4,8 @@ Aplicación web en **FastAPI** donde cada usuario registra los ingredientes que 
 
 Proyecto final de Tecnologías Web (5916) — Universidad Simón Bolívar, 2026-2.
 
-- **Aplicación:** https://recetas-ia.onrender.com
-- **Documentación de la API (Swagger):** https://recetas-ia.onrender.com/docs
+- **Aplicación:** https://recetas-ia-rwzn.onrender.com
+- **Documentación de la API (Swagger):** https://recetas-ia-rwzn.onrender.com/docs
 
 ## Funcionalidades
 
