@@ -1,11 +1,11 @@
-# Recetario IA — Generador de recetas con inventario e IA
+# Alacena — Generador de recetas con inventario e IA
 
-Aplicación web en **FastAPI** donde cada usuario registra los ingredientes que tiene en casa y obtiene recetas generadas por un **LLM (OpenRouter)**. Las recetas se guardan en **PostgreSQL**, se pueden consultar en el historial, calificar de 1 a 5 estrellas y eliminar.
+Aplicación web en **FastAPI** donde cada usuario registra los ingredientes que tiene en casa y obtiene recetas generadas por un **LLM** (Groq en producción; compatible con OpenRouter u otro proveedor con API tipo OpenAI). Las recetas se guardan en **PostgreSQL**, se pueden consultar en el historial, calificar de 1 a 5 estrellas y eliminar.
 
 Proyecto final de Tecnologías Web (5916) — Universidad Simón Bolívar, 2026-2.
 
-- **Aplicación:** https://recetas.tudominio.com
-- **Documentación de la API (Swagger):** https://recetas.tudominio.com/docs
+- **Aplicación:** https://recetas-ia.onrender.com
+- **Documentación de la API (Swagger):** https://recetas-ia.onrender.com/docs
 
 ## Funcionalidades
 
@@ -65,7 +65,16 @@ Las pruebas usan SQLite en memoria y un LLM falso, así que no necesitan Postgre
 
 Dentro del contenedor: `docker compose exec app pytest`
 
-## Despliegue en VPS con dominio y HTTPS
+## Despliegue en Render (producción actual)
+
+1. **New → Postgres** (plan Free) y copia la *Internal Database URL*.
+2. **New → Web Service** desde este repositorio, runtime **Docker**, misma región que la base de datos.
+3. Variables de entorno: `PORT=8000`, `APP_ENV=production`, `DATABASE_URL`, `SECRET_KEY`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`.
+4. *Health Check Path*: `/health`. Render construye la imagen con el `Dockerfile` y sirve la app con HTTPS.
+
+Para usar Groq como proveedor del LLM: `OPENROUTER_BASE_URL=https://api.groq.com/openai/v1`, `OPENROUTER_MODEL=openai/gpt-oss-120b` y la API key de Groq en `OPENROUTER_API_KEY`.
+
+## Despliegue en VPS con dominio y HTTPS (Docker Compose)
 
 Requisitos: un VPS con Ubuntu (DigitalOcean, Hetzner, etc.) y un dominio con un registro **A** apuntando a la IP del VPS.
 
