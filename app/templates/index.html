@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Recetario IA</a>
+    <nav id="nav" hidden>
+      <span id="whoami"></span>
+      <a href="/docs" target="_blank" rel="noopener">API</a>
+      <button id="logout" class="link">Salir</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Autenticación -->
+    <section id="auth-view" class="card narrow">
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Iniciar sesión</button>
+        <button class="tab" data-tab="register">Crear cuenta</button>
+      </div>
+
+      <form id="login-form" class="stack">
+        <label>Usuario o correo <input name="username" required autocomplete="username"></label>
+        <label>Contraseña <input name="password" type="password" required autocomplete="current-password"></label>
+        <button type="submit">Entrar</button>
+      </form>
+
+      <form id="register-form" class="stack" hidden>
+        <label>Usuario <input name="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" title="Letras, números y guion bajo"></label>
+        <label>Correo <input name="email" type="email" required maxlength="120"></label>
+        <label>Contraseña <input name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password"></label>
+        <button type="submit">Registrarme</button>
+      </form>
+      <p id="auth-msg" class="msg" role="alert"></p>
+    </section>
+
+    <!-- Aplicación -->
+    <div id="app-view" class="grid" hidden>
+      <section class="card">
+        <h2>Mi inventario</h2>
+        <form id="ingredient-form" class="row">
+          <input name="name" placeholder="Ingrediente (ej. arroz)" required maxlength="50">
+          <input name="quantity" type="number" step="any" min="0.01" placeholder="Cantidad" required>
+          <select name="unit">
+            <option>unidad</option><option>g</option><option>kg</option><option>ml</option>
+            <option>l</option><option>lb</option><option>taza</option><option>cucharada</option>
+            <option>cucharadita</option><option>pizca</option>
+          </select>
+          <button type="submit" id="ingredient-submit">Agregar</button>
+          <button type="button" id="ingredient-cancel" class="secondary" hidden>Cancelar</button>
+        </form>
+        <p id="ingredient-msg" class="msg" role="alert"></p>
+        <table>
+          <thead><tr><th>Ingrediente</th><th>Cantidad</th><th></th></tr></thead>
+          <tbody id="ingredient-list"></tbody>
+        </table>
+        <p id="ingredient-empty" class="muted">Tu inventario está vacío.</p>
+      </section>
+
+      <section class="card">
+        <h2>Generar receta</h2>
+        <form id="generate-form" class="row">
+          <label>Porciones <input name="servings" type="number" min="1" max="12" value="2"></label>
+          <label>Tipo
+            <select name="meal_type">
+              <option value="">Cualquiera</option><option>desayuno</option><option>almuerzo</option>
+              <option>cena</option><option>merienda</option><option>postre</option>
+            </select>
+          </label>
+          <button type="submit" id="generate-btn">Generar con IA</button>
+        </form>
+        <p id="generate-msg" class="msg" role="alert"></p>
+        <div id="latest"></div>
+      </section>
+
+      <section class="card wide">
+        <h2>Historial</h2>
+        <div id="history"></div>
+        <p id="history-empty" class="muted">Aún no has generado recetas.</p>
+      </section>
+    </div>
+  </main>
+
+  <template id="recipe-template">
+    <article class="recipe">
+      <header>
+        <h3 class="r-title"></h3>
+        <p class="r-meta muted"></p>
+      </header>
+      <h4>Ingredientes</h4>
+      <ul class="r-ingredients"></ul>
+      <h4>Preparación</h4>
+      <ol class="r-steps"></ol>
+      <footer>
+        <div class="stars" role="group" aria-label="Calificación"></div>
+        <button class="secondary r-delete">Eliminar</button>
+      </footer>
+    </article>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
