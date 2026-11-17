@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Ingredient, Rating, Recipe, User
+from app.rate_limit import enforce, generate_daily_limiter, generate_limiter
 from app.schemas.recipe import RatingCreate, RatingOut, RecipeGenerateRequest, RecipeOut
 from app.security import get_current_user
 from app.services.llm_service import LLMService, LLMServiceError, get_llm_service
@@ -43,6 +44,8 @@ def generate_recipe(
 ):
     """Genera una receta con el LLM a partir del inventario actual y la guarda."""
     options = payload or RecipeGenerateRequest()
+    enforce(generate_limiter, f"user:{user.id}", "Estás generando muy rápido. Espera un minuto.")
+    enforce(generate_daily_limiter, f"user:{user.id}", "Alcanzaste el límite diario de recetas.")
     ingredients = db.scalars(
         select(Ingredient).where(Ingredient.user_id == user.id).order_by(Ingredient.name)
     ).all()
