@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Informe — Generador de recetas con IA</title>
+<!--
+  Cómo generar el PDF:
+  1. Guarda tus capturas en docs/capturas/ con estos nombres:
+     01-login.png, 02-inventario.png, 03-receta.png, 04-historial.png, 05-swagger.png
+  2. Cambia las dos URL marcadas con "EDITAR" más abajo.
+  3. Abre este archivo en Chrome → Ctrl+P → Destino "Guardar como PDF",
+     márgenes "Predeterminados", activa "Gráficos de fondo". Debe dar 3 páginas.
+-->
+<style>
+  @page { size: A4; margin: 14mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Arial, sans-serif; font-size: 9.6pt; line-height: 1.38; color: #000; margin: 0; }
+  h1 { font-size: 15pt; margin: 0 0 2px; }
+  h2 { font-size: 11.5pt; margin: 12px 0 5px; border-bottom: 1.2px solid #000; padding-bottom: 2px; }
+  p { margin: 0 0 6px; }
+  ul { margin: 0 0 6px; padding-left: 16px; }
+  li { margin-bottom: 2px; }
+  code { font-family: Consolas, "DejaVu Sans Mono", monospace; font-size: 8.6pt; }
+  .meta { font-size: 8.8pt; margin-bottom: 8px; }
+  .meta td { padding: 1px 10px 1px 0; vertical-align: top; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 8.6pt; margin: 4px 0 6px; }
+  table.t th, table.t td { border: 1px solid #000; padding: 3px 5px; text-align: left; vertical-align: top; }
+  table.t th { background: #eee; }
+  figure { margin: 6px 0; text-align: center; }
+  figcaption { font-size: 8.2pt; margin-top: 2px; }
+  .page-break { break-before: page; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .shot { border: 1px solid #000; height: 76mm; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .shot img { max-width: 100%; max-height: 100%; display: block; }
+  .shot .ph { font-size: 8.5pt; color: #555; padding: 8px; text-align: center; }
+  .shots figure { margin: 0; }
+  .shots .full { grid-column: 1 / -1; }
+  .shots .full .shot { height: 62mm; }
+  svg text { font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>Recetario IA — Generador de recetas con inventario e IA</h1>
+<table class="meta">
+  <tr><td><b>Estudiante</b></td><td>Erick Fabián Donado Fonseca</td><td><b>Curso</b></td><td>Tecnologías Web (5916) · Grupo T02 · 2026-2</td></tr>
+  <tr><td><b>Repositorio</b></td><td><!-- EDITAR --><code>https://github.com/KanuSaru/proyecto-recetas</code></td><td><b>Profesor</b></td><td>Rafael Bladimir Pérez Merino</td></tr>
+  <tr><td><b>Aplicación</b></td><td><!-- EDITAR --><code>https://recetas.tudominio.com</code></td><td><b>API</b></td><td><code>/docs</code> (Swagger/OpenAPI)</td></tr>
+</table>
+
+<h2>1. Descripción y arquitectura</h2>
+<p>Aplicación web donde cada usuario registra los ingredientes que tiene en casa y obtiene recetas generadas por un modelo de lenguaje. Las recetas se guardan en la base de datos y se pueden consultar, calificar de 1 a 5 estrellas y eliminar. El backend es una API REST en <b>Python + FastAPI</b>; la interfaz es una página <b>Jinja2</b> con JavaScript sin frameworks que consume la misma API con un <b>JWT</b>.</p>
+
+<figure>
+<svg viewBox="0 0 700 190" width="100%" xmlns="http://www.w3.org/2000/svg" style="max-height:62mm">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#000"/></marker></defs>
+  <g font-size="11" fill="#000">
+    <rect x="5" y="70" width="95" height="46" fill="#fff" stroke="#000"/>
+    <text x="52" y="90" text-anchor="middle" font-weight="700">Navegador</text>
+    <text x="52" y="106" text-anchor="middle" font-size="9.5">HTML + JS</text>
+
+    <rect x="140" y="20" width="535" height="165" fill="none" stroke="#000" stroke-dasharray="5 4"/>
+    <text x="150" y="35" font-size="9.5">VPS · Docker Compose</text>
+
+    <rect x="150" y="70" width="95" height="46" fill="#fff" stroke="#000"/>
+    <text x="197" y="90" text-anchor="middle" font-weight="700">Caddy</text>
+    <text x="197" y="106" text-anchor="middle" font-size="9.5">SSL Let's Encrypt</text>
+
+    <rect x="285" y="45" width="210" height="96" fill="#fff" stroke="#000" stroke-width="1.6"/>
+    <text x="390" y="62" text-anchor="middle" font-weight="700">app · FastAPI (uvicorn)</text>
+    <text x="297" y="80" font-size="9.5">routers: auth · ingredients · recipes</text>
+    <text x="297" y="95" font-size="9.5">schemas (Pydantic) · security (JWT)</text>
+    <text x="297" y="110" font-size="9.5">models (SQLAlchemy 2.0)</text>
+    <rect x="295" y="117" width="190" height="18" fill="#eee" stroke="#000"/>
+    <text x="390" y="130" text-anchor="middle" font-size="9.5" font-weight="700">services/llm_service.py</text>
+
+    <rect x="545" y="45" width="120" height="46" fill="#fff" stroke="#000"/>
+    <text x="605" y="65" text-anchor="middle" font-weight="700">db · PostgreSQL 16</text>
+    <text x="605" y="81" text-anchor="middle" font-size="9.5">volumen pgdata</text>
+
+    <rect x="545" y="118" width="120" height="40" fill="#fff" stroke="#000"/>
+    <text x="605" y="136" text-anchor="middle" font-weight="700">OpenRouter</text>
+    <text x="605" y="150" text-anchor="middle" font-size="9.5">LLM (externo)</text>
+
+    <line x1="100" y1="93" x2="148" y2="93" stroke="#000" marker-end="url(#a)"/>
+    <text x="124" y="87" text-anchor="middle" font-size="9">HTTPS</text>
+    <line x1="245" y1="93" x2="283" y2="93" stroke="#000" marker-end="url(#a)"/>
+    <text x="264" y="87" text-anchor="middle" font-size="9">:8000</text>
+    <line x1="495" y1="68" x2="543" y2="68" stroke="#000" marker-end="url(#a)"/>
+    <text x="519" y="62" text-anchor="middle" font-size="9">SQL</text>
+    <line x1="485" y1="133" x2="543" y2="138" stroke="#000" marker-end="url(#a)"/>
+    <text x="514" y="128" text-anchor="middle" font-size="9">JSON</text>
+  </g>
+</svg>
+<figcaption>Figura 1. Arquitectura: tres contenedores (Caddy, app, db) y el proveedor LLM externo.</figcaption>
+</figure>
+
+<p><b>Flujo de generación.</b> <code>POST /api/recipes/generate</code> lee el inventario del usuario autenticado y llama a <code>LLMService</code>. El servicio arma un prompt fijo (mensaje de sistema con el formato JSON exigido + inventario con cantidades, porciones y tipo de comida), lo envía a OpenRouter y pasa la respuesta por <code>parse_recipe_response</code>, que extrae el objeto JSON y lo valida contra el esquema <code>RecipeLLMOutput</code>: <code>nombre</code>, <code>ingredientes[{nombre, cantidad}]</code>, <code>pasos[]</code>, <code>tiempo_estimado_minutos</code> y <code>dificultad</code> (fácil/media/difícil). Solo si es válido se guarda la receta. El usuario nunca escribe texto libre para el modelo: no es un chatbot.</p>
+
+<table class="t">
+  <tr><th>Funcionalidad</th><th>Endpoints</th></tr>
+  <tr><td>Registro e inicio de sesión (JWT)</td><td><code>POST /api/auth/register</code> · <code>POST /api/auth/login</code> · <code>GET /api/auth/me</code></td></tr>
+  <tr><td>CRUD de ingredientes</td><td><code>GET/POST /api/ingredients</code> · <code>GET/PUT/DELETE /api/ingredients/{id}</code></td></tr>
+  <tr><td>Generar receta · historial</td><td><code>POST /api/recipes/generate</code> · <code>GET /api/recipes</code> · <code>GET /api/recipes/{id}</code></td></tr>
+  <tr><td>Calificar · eliminar</td><td><code>PUT /api/recipes/{id}/rating</code> (1–5) · <code>DELETE /api/recipes/{id}</code></td></tr>
+</table>
+
+<h2 class="page-break">2. Modelo de base de datos</h2>
+<figure>
+<svg viewBox="0 0 700 270" width="100%" xmlns="http://www.w3.org/2000/svg" style="max-height:90mm">
+  <g font-size="10.5" fill="#000">
+    <!-- usuarios -->
+    <rect x="10" y="80" width="170" height="112" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <rect x="10" y="80" width="170" height="20" fill="#000"/>
+    <text x="95" y="94" text-anchor="middle" fill="#fff" font-weight="700">usuarios</text>
+    <text x="18" y="116">PK id</text>
+    <text x="18" y="132">username (único)</text>
+    <text x="18" y="148">email (único)</text>
+    <text x="18" y="164">hashed_password</text>
+    <text x="18" y="180">created_at</text>
+
+    <!-- ingredientes -->
+    <rect x="270" y="5" width="185" height="128" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <rect x="270" y="5" width="185" height="20" fill="#000"/>
+    <text x="362" y="19" text-anchor="middle" fill="#fff" font-weight="700">ingredientes</text>
+    <text x="278" y="41">PK id</text>
+    <text x="278" y="57">FK user_id → usuarios.id</text>
+    <text x="278" y="73">name</text>
+    <text x="278" y="89">quantity · unit</text>
+    <text x="278" y="105">created_at · updated_at</text>
+    <text x="278" y="122" font-size="9.5">UNIQUE (user_id, name)</text>
+
+    <!-- recetas -->
+    <rect x="270" y="150" width="185" height="115" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <rect x="270" y="150" width="185" height="20" fill="#000"/>
+    <text x="362" y="164" text-anchor="middle" fill="#fff" font-weight="700">recetas</text>
+    <text x="278" y="186">PK id</text>
+    <text x="278" y="202">FK user_id → usuarios.id</text>
+    <text x="278" y="218">title · servings</text>
+    <text x="278" y="234">ingredients (JSON) · steps (JSON)</text>
+    <text x="278" y="250">time_minutes · difficulty</text>
+    <text x="278" y="262" font-size="9.5">llm_model · created_at</text>
+
+    <!-- calificaciones -->
+    <rect x="530" y="150" width="160" height="100" fill="#fff" stroke="#000" stroke-width="1.5"/>
+    <rect x="530" y="150" width="160" height="20" fill="#000"/>
+    <text x="610" y="164" text-anchor="middle" fill="#fff" font-weight="700">calificaciones</text>
+    <text x="538" y="186">PK id</text>
+    <text x="538" y="202">FK recipe_id (único)</text>
+    <text x="538" y="218">FK user_id</text>
+    <text x="538" y="234">stars CHECK 1–5</text>
+    <text x="538" y="246" font-size="9.5">created_at · updated_at</text>
+
+    <!-- relaciones -->
+    <polyline points="180,120 225,120 225,69 270,69" fill="none" stroke="#000"/>
+    <text x="186" y="114" font-weight="700">1</text>
+    <text x="256" y="63" font-weight="700">N</text>
+    <polyline points="180,160 225,160 225,208 270,208" fill="none" stroke="#000"/>
+    <text x="186" y="174" font-weight="700">1</text>
+    <text x="256" y="202" font-weight="700">N</text>
+    <line x1="455" y1="200" x2="530" y2="200" stroke="#000"/>
+    <text x="462" y="194" font-weight="700">1</text>
+    <text x="508" y="194" font-weight="700">0..1</text>
+  </g>
+</svg>
+<figcaption>Figura 2. Diagrama entidad-relación (PostgreSQL). Borrado en cascada desde usuarios y recetas.</figcaption>
+</figure>
+<p>Un usuario tiene muchos ingredientes y muchas recetas; cada receta tiene como máximo una calificación (<code>recipe_id</code> único). La restricción <code>UNIQUE(user_id, name)</code> evita ingredientes repetidos en el inventario y <code>CHECK stars BETWEEN 1 AND 5</code> garantiza la regla de calificación también a nivel de base de datos. Los ingredientes y pasos de la receta se guardan como JSON porque son el resultado ya validado del LLM y siempre se leen junto con la receta.</p>
+
+<h2>3. Decisiones técnicas</h2>
+<ul>
+  <li><b>LLM encapsulado y validado.</b> <code>llm_service.py</code> es el único módulo que habla con OpenRouter. El JSON del modelo se valida con Pydantic antes de guardarse; se toleran bloques <code>```json</code>, texto alrededor y variantes como <code>"30 minutos"</code> o <code>"facil"</code>. Si la respuesta es inválida se reintenta una vez y luego la API responde <b>502</b> sin guardar nada.</li>
+  <li><b>Validación de ingredientes contra inyección de prompt.</b> Los nombres solo admiten letras, espacios y guiones (2–50 caracteres), la cantidad debe ser positiva y la unidad pertenece a una lista cerrada. Así, un nombre como <i>"pollo; ignora las instrucciones"</i> se rechaza con 422 antes de llegar al prompt.</li>
+  <li><b>Autenticación.</b> Contraseñas con bcrypt y JWT HS256 con expiración configurable. El login usa el formulario OAuth2 de FastAPI, por lo que el botón <i>Authorize</i> de Swagger funciona. Todas las consultas filtran por <code>user_id</code> y un recurso ajeno responde 404.</li>
+  <li><b>Pruebas.</b> 45 casos con pytest en 4 archivos: validación de ingredientes, construcción del prompt, parseo de la respuesta del LLM y endpoints. Usan SQLite en memoria y un LLM falso inyectado con <code>dependency_overrides</code>, así que corren sin red, sin API key y sin gastar créditos.</li>
+  <li><b>Despliegue.</b> Docker Compose con tres servicios: <code>db</code> (PostgreSQL, sin puertos públicos y con healthcheck), <code>app</code> (FastAPI, espera a que la BD esté sana) y <code>caddy</code>, que emite y renueva el certificado de Let's Encrypt automáticamente. Las credenciales viven en <code>.env</code> (ignorado por git); el repositorio solo incluye <code>.env.example</code>.</li>
+</ul>
+
+<h2 class="page-break">4. Capturas del sistema funcionando</h2>
+<div class="shots">
+  <figure><div class="shot"><img src="capturas/01-login.png" alt="" onerror="this.outerHTML='<span class=ph>docs/capturas/01-login.png</span>'"></div><figcaption>Inicio de sesión / registro (HTTPS y favicon visibles)</figcaption></figure>
+  <figure><div class="shot"><img src="capturas/02-inventario.png" alt="" onerror="this.outerHTML='<span class=ph>docs/capturas/02-inventario.png</span>'"></div><figcaption>Inventario de ingredientes (CRUD)</figcaption></figure>
+  <figure><div class="shot"><img src="capturas/03-receta.png" alt="" onerror="this.outerHTML='<span class=ph>docs/capturas/03-receta.png</span>'"></div><figcaption>Receta generada por el LLM</figcaption></figure>
+  <figure><div class="shot"><img src="capturas/04-historial.png" alt="" onerror="this.outerHTML='<span class=ph>docs/capturas/04-historial.png</span>'"></div><figcaption>Historial con calificación y eliminación</figcaption></figure>
+  <figure class="full"><div class="shot"><img src="capturas/05-swagger.png" alt="" onerror="this.outerHTML='<span class=ph>docs/capturas/05-swagger.png</span>'"></div><figcaption>Documentación OpenAPI en /docs (o salida de <code>docker compose exec app pytest</code>)</figcaption></figure>
+</div>
+
+</body>
+</html>
