@@ -8,7 +8,7 @@ import os
 
 # Debe definirse ANTES de importar la aplicación
 os.environ["DATABASE_URL"] = "sqlite://"
-os.environ["SECRET_KEY"] = "clave-de-pruebas"
+os.environ["SECRET_KEY"] = "clave-de-pruebas-con-longitud-suficiente-0123456789"
 os.environ["APP_ENV"] = "test"
 os.environ["OPENROUTER_API_KEY"] = ""
 
