@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Ingredient, User
-from app.schemas.ingredient import IngredientCreate, IngredientOut, IngredientUpdate
+from app.schemas.ingredient import (
+    MAX_INGREDIENTS_PER_USER,
+    IngredientCreate,
+    IngredientOut,
+    IngredientUpdate,
+)
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api/ingredients", tags=["Ingredientes"])
@@ -39,6 +44,12 @@ def create_ingredient(
     user: User = Depends(get_current_user),
 ):
     """Agrega un ingrediente al inventario."""
+    total = db.scalar(select(func.count(Ingredient.id)).where(Ingredient.user_id == user.id))
+    if total >= MAX_INGREDIENTS_PER_USER:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tu alacena admite máximo {MAX_INGREDIENTS_PER_USER} ingredientes",
+        )
     if _name_taken(db, user, payload.name):
         raise HTTPException(status_code=409, detail="Ese ingrediente ya está en tu inventario")
     ingredient = Ingredient(user_id=user.id, **payload.model_dump())

@@ -24,7 +24,16 @@ Unit = Literal[
 
 # Solo letras (con tildes y ñ), separadas por un espacio o guion: "ají dulce", "maíz-pira"
 NAME_RE = re.compile(r"^[a-záéíóúüñ]+(?:[ -][a-záéíóúüñ]+)*$")
-NAME_MIN, NAME_MAX = 2, 50
+NAME_MIN, NAME_MAX = 2, 40
+MAX_WORDS = 4
+MAX_INGREDIENTS_PER_USER = 40
+# Palabras que nunca forman parte de un ingrediente y sí de un intento de prompt injection
+BLOCKED_WORDS = {
+    "ignora", "ignorar", "ignore", "olvida", "olvidar", "instruccion", "instrucción",
+    "instrucciones", "prompt", "sistema", "system", "responde", "responder", "escribe",
+    "escribir", "eres", "actua", "actúa", "actuar", "rol", "comando", "asistente",
+    "assistant", "devuelve", "json", "modelo", "reglas",
+}
 MAX_QUANTITY = 100_000
 
 
@@ -37,6 +46,11 @@ def normalize_ingredient_name(value: str) -> str:
         raise ValueError(f"El nombre debe tener entre {NAME_MIN} y {NAME_MAX} caracteres")
     if not NAME_RE.match(name):
         raise ValueError("El nombre solo puede contener letras, espacios y guiones")
+    words = name.replace("-", " ").split()
+    if len(words) > MAX_WORDS:
+        raise ValueError(f"El nombre puede tener máximo {MAX_WORDS} palabras")
+    if any(word in BLOCKED_WORDS for word in words):
+        raise ValueError("El nombre no parece un ingrediente")
     return name
 
 

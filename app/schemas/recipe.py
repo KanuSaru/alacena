@@ -73,6 +73,8 @@ class RecipeLLMOutput(BaseModel):
                 raise ValueError("Cada paso debe ser texto")
             # Quita numeraciones como "1. " o "Paso 2: " que algunos modelos agregan
             step = re.sub(r"^\s*(paso\s*)?\d+\s*[.):-]\s*", "", step, flags=re.I).strip()
+            if len(step) > 500:
+                raise ValueError("Paso demasiado largo")
             if step:
                 cleaned.append(step)
         return cleaned
