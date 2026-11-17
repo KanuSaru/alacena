@@ -1,10 +1,16 @@
-// Interfaz mínima: consume la API REST con el JWT guardado en localStorage.
+// Interfaz de Alacena: consume la API REST con el JWT guardado en localStorage.
 const TOKEN_KEY = "recetas_token";
 let token = null;
 try { token = localStorage.getItem(TOKEN_KEY); } catch (_) { /* almacenamiento no disponible */ }
 let editingId = null;
 
 const $ = (sel) => document.querySelector(sel);
+const el = (tag, className, text) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
 
 function saveToken(value) {
   token = value;
@@ -44,9 +50,9 @@ async function api(path, { method = "GET", body, form } = {}) {
   return data;
 }
 
-function showMsg(el, text, isError = false) {
-  el.textContent = text;
-  el.classList.toggle("error", isError);
+function showMsg(node, text, isError = false) {
+  node.textContent = text;
+  node.classList.toggle("error", isError);
 }
 
 // ---------- Autenticación ----------
@@ -59,17 +65,18 @@ document.querySelectorAll(".tab").forEach((tab) => {
   });
 });
 
+async function login(username, password) {
+  const data = await api("/api/auth/login", { method: "POST", form: { username, password } });
+  saveToken(data.access_token);
+  await enterApp();
+}
+
 $("#login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
   try {
-    const data = await api("/api/auth/login", {
-      method: "POST",
-      form: { username: fd.get("username"), password: fd.get("password") },
-    });
-    saveToken(data.access_token);
+    await login(fd.get("username"), fd.get("password"));
     e.target.reset();
-    await enterApp();
   } catch (err) {
     showMsg($("#auth-msg"), err.message, true);
   }
@@ -83,13 +90,8 @@ $("#register-form").addEventListener("submit", async (e) => {
       method: "POST",
       body: { username: fd.get("username"), email: fd.get("email"), password: fd.get("password") },
     });
-    const data = await api("/api/auth/login", {
-      method: "POST",
-      form: { username: fd.get("username"), password: fd.get("password") },
-    });
-    saveToken(data.access_token);
+    await login(fd.get("username"), fd.get("password"));
     e.target.reset();
-    await enterApp();
   } catch (err) {
     showMsg($("#auth-msg"), err.message, true);
   }
@@ -105,8 +107,7 @@ $("#logout").addEventListener("click", logout);
 
 async function enterApp() {
   const me = await api("/api/auth/me");
-  $("#whoami").textContent = `@${me.username}`;
-  $("#greeting").textContent = `Hola, ${me.username}. ¿Qué cocinamos hoy?`;
+  $("#whoami").textContent = `Hola, ${me.username}`;
   $("#auth-view").hidden = true;
   $("#nav").hidden = false;
   $("#app-view").hidden = false;
@@ -114,11 +115,10 @@ async function enterApp() {
 }
 
 // ---------- Ingredientes ----------
+const PLURALS = { unidad: "unidades", taza: "tazas", cucharada: "cucharadas", cucharadita: "cucharaditas", pizca: "pizcas" };
 function fmtQty(q) {
   return Number.isInteger(q) ? q : Number(q.toFixed(2));
 }
-
-const PLURALS = { unidad: "unidades", taza: "tazas", cucharada: "cucharadas", cucharadita: "cucharaditas", pizca: "pizcas" };
 function fmtUnit(q, unit) {
   return q !== 1 && PLURALS[unit] ? PLURALS[unit] : unit;
 }
@@ -128,37 +128,28 @@ async function loadIngredients() {
   const list = $("#ingredient-list");
   list.innerHTML = "";
   $("#ingredient-empty").hidden = items.length > 0;
-  $("#ingredient-count").textContent = `${items.length} ingrediente${items.length === 1 ? "" : "s"}`;
+  $("#ingredient-count").textContent = items.length === 1 ? "1 ingrediente" : `${items.length} ingredientes`;
+
   for (const it of items) {
-    const li = document.createElement("li");
-    const info = document.createElement("div");
-    const name = document.createElement("span");
-    name.className = "name";
-    name.textContent = it.name;
-    const qty = document.createElement("span");
-    qty.className = "qty";
-    qty.textContent = `${fmtQty(it.quantity)} ${fmtUnit(it.quantity, it.unit)}`;
-    info.append(name, qty);
-    const actions = document.createElement("div");
-    const edit = document.createElement("button");
-    edit.className = "icon";
-    edit.textContent = "Editar";
-    edit.addEventListener("click", () => startEdit(it));
-    const del = document.createElement("button");
-    del.className = "icon";
-    del.textContent = "Quitar";
-    del.addEventListener("click", async () => {
+    const chip = el("li", "chip");
+    const name = el("span", "chip-name", it.name);
+    name.title = "Editar";
+    name.addEventListener("click", () => startEdit(it));
+    const qty = el("b", "", `${fmtQty(it.quantity)} ${fmtUnit(it.quantity, it.unit)}`);
+    const remove = el("button", "chip-remove", "×");
+    remove.setAttribute("aria-label", `Quitar ${it.name}`);
+    remove.addEventListener("click", async () => {
       try {
         await api(`/api/ingredients/${it.id}`, { method: "DELETE" });
         if (editingId === it.id) cancelEdit();
+        showMsg($("#ingredient-msg"), `${it.name} quitado.`);
         await loadIngredients();
       } catch (err) {
         showMsg($("#ingredient-msg"), err.message, true);
       }
     });
-    actions.append(edit, del);
-    li.append(info, actions);
-    list.append(li);
+    chip.append(name, qty, remove);
+    list.append(chip);
   }
 }
 
@@ -168,7 +159,7 @@ function startEdit(it) {
   form.elements["name"].value = it.name;
   form.elements["quantity"].value = it.quantity;
   form.elements["unit"].value = it.unit;
-  $("#ingredient-submit").textContent = "Guardar";
+  $("#ingredient-submit").textContent = "Guardar cambios";
   $("#ingredient-cancel").hidden = false;
   form.elements["name"].focus();
 }
@@ -176,7 +167,7 @@ function startEdit(it) {
 function cancelEdit() {
   editingId = null;
   $("#ingredient-form").reset();
-  $("#ingredient-submit").textContent = "Agregar";
+  $("#ingredient-submit").textContent = "Agregar ingrediente";
   $("#ingredient-cancel").hidden = true;
 }
 $("#ingredient-cancel").addEventListener("click", cancelEdit);
@@ -188,7 +179,7 @@ $("#ingredient-form").addEventListener("submit", async (e) => {
   try {
     if (editingId) {
       await api(`/api/ingredients/${editingId}`, { method: "PUT", body });
-      showMsg($("#ingredient-msg"), "Ingrediente actualizado.");
+      showMsg($("#ingredient-msg"), "Cambios guardados.");
     } else {
       await api("/api/ingredients", { method: "POST", body });
       showMsg($("#ingredient-msg"), "Ingrediente agregado.");
@@ -201,45 +192,60 @@ $("#ingredient-form").addEventListener("submit", async (e) => {
 });
 
 // ---------- Recetas ----------
+function metaParts(recipe) {
+  const servings = recipe.servings === 1 ? "1 porción" : `${recipe.servings} porciones`;
+  return [`${recipe.time_minutes} min`, servings];
+}
+
 function renderRecipe(recipe) {
   const node = $("#recipe-template").content.firstElementChild.cloneNode(true);
   node.querySelector(".r-title").textContent = recipe.title;
-  node.querySelector(".r-time").textContent = `⏱ ${recipe.time_minutes} min`;
-  node.querySelector(".r-servings").textContent =
-    `🍽 ${recipe.servings} porci${recipe.servings === 1 ? "ón" : "ones"}`;
-  const diff = node.querySelector(".r-difficulty");
-  diff.textContent = `Dificultad ${recipe.difficulty}`;
-  diff.classList.add(recipe.difficulty);
+
+  const meta = node.querySelector(".r-meta");
+  for (const part of metaParts(recipe)) meta.append(el("span", "", part));
+  meta.append(el("span", `level ${recipe.difficulty}`, `Dificultad ${recipe.difficulty}`));
+
   const ul = node.querySelector(".r-ingredients");
   for (const ing of recipe.ingredients) {
-    const li = document.createElement("li");
-    li.textContent = `${ing.nombre}: ${ing.cantidad}`;
+    const li = el("li");
+    li.append(el("span", "", ing.nombre), el("span", "", ing.cantidad));
     ul.append(li);
   }
   const ol = node.querySelector(".r-steps");
-  for (const step of recipe.steps) {
-    const li = document.createElement("li");
-    li.textContent = step;
-    ol.append(li);
-  }
+  for (const step of recipe.steps) ol.append(el("li", "", step));
+
   const stars = node.querySelector(".stars");
   for (let i = 1; i <= 5; i++) {
-    const b = document.createElement("button");
-    b.textContent = recipe.rating && i <= recipe.rating ? "★" : "☆";
-    b.title = `${i} estrella${i > 1 ? "s" : ""}`;
+    const b = el("button", recipe.rating && i <= recipe.rating ? "on" : "", "★");
+    b.setAttribute("aria-label", `Calificar con ${i} estrella${i > 1 ? "s" : ""}`);
     b.addEventListener("click", async () => {
       await api(`/api/recipes/${recipe.id}/rating`, { method: "PUT", body: { stars: i } });
+      stars.querySelectorAll("button").forEach((s, idx) => s.classList.toggle("on", idx < i));
       await loadHistory();
     });
     stars.append(b);
   }
+
   node.querySelector(".r-delete").addEventListener("click", async () => {
-    if (!confirm(`¿Eliminar "${recipe.title}" de tu recetario?`)) return;
+    if (!confirm(`¿Eliminar "${recipe.title}"?`)) return;
     await api(`/api/recipes/${recipe.id}`, { method: "DELETE" });
-    $("#latest").innerHTML = "";
+    $("#latest").innerHTML = '<p class="placeholder">Tu próxima receta aparecerá aquí.</p>';
     await loadHistory();
   });
   return node;
+}
+
+function renderSaved(recipe) {
+  const details = el("details", "saved-item");
+  const summary = el("summary");
+  summary.append(el("span", "s-title", recipe.title));
+  summary.append(el("span", "s-meta", `${metaParts(recipe).join(", ")}, ${recipe.difficulty}`));
+  const stars = el("span", "s-stars");
+  stars.setAttribute("aria-label", recipe.rating ? `${recipe.rating} de 5 estrellas` : "Sin calificar");
+  for (let i = 1; i <= 5; i++) stars.append(el("span", recipe.rating && i <= recipe.rating ? "" : "off", "★"));
+  summary.append(stars);
+  details.append(summary, renderRecipe(recipe));
+  return details;
 }
 
 async function loadHistory() {
@@ -247,8 +253,8 @@ async function loadHistory() {
   const box = $("#history");
   box.innerHTML = "";
   $("#history-empty").hidden = recipes.length > 0;
-  $("#history-count").textContent = `${recipes.length} receta${recipes.length === 1 ? "" : "s"}`;
-  recipes.forEach((r) => box.append(renderRecipe(r)));
+  $("#history-count").textContent = recipes.length === 1 ? "1 receta" : `${recipes.length} recetas`;
+  recipes.forEach((r) => box.append(renderSaved(r)));
 }
 
 $("#generate-form").addEventListener("submit", async (e) => {
@@ -256,13 +262,13 @@ $("#generate-form").addEventListener("submit", async (e) => {
   const fd = new FormData(e.target);
   const btn = $("#generate-btn");
   btn.disabled = true;
-  btn.textContent = "Cocinando...";
-  showMsg($("#generate-msg"), "Preparando tu receta con lo que hay en tu alacena…");
+  btn.textContent = "Generando…";
+  showMsg($("#generate-msg"), "Buscando una receta con lo que tienes. Puede tardar unos segundos.");
   try {
     const body = { servings: Number(fd.get("servings")) || 2 };
     if (fd.get("meal_type")) body.meal_type = fd.get("meal_type");
     const recipe = await api("/api/recipes/generate", { method: "POST", body });
-    showMsg($("#generate-msg"), "¡Listo! La receta quedó guardada en tu recetario.");
+    showMsg($("#generate-msg"), "Receta generada y guardada.");
     $("#latest").innerHTML = "";
     $("#latest").append(renderRecipe(recipe));
     await loadHistory();
@@ -270,7 +276,7 @@ $("#generate-form").addEventListener("submit", async (e) => {
     showMsg($("#generate-msg"), err.message, true);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Generar con IA";
+    btn.textContent = "Generar receta";
   }
 });
 

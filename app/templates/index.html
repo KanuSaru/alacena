@@ -4,150 +4,149 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
-  <meta name="description" content="Alacena: registra los ingredientes que tienes en casa y genera recetas con inteligencia artificial.">
+  <meta name="description" content="Alacena: anota lo que tienes en casa y genera recetas con inteligencia artificial.">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/">
-      <img src="/static/apple-touch-icon.png" alt="" width="34" height="34">
-      <span>Alacena</span>
+      <img src="/static/apple-touch-icon.png" alt="" width="30" height="30">
+      Alacena
     </a>
     <nav id="nav" hidden>
-      <span id="whoami" class="pill"></span>
+      <span id="whoami"></span>
       <a href="/docs" target="_blank" rel="noopener">API</a>
-      <button id="logout" class="link">Salir</button>
+      <button id="logout" class="text-btn">Cerrar sesión</button>
     </nav>
   </header>
 
-  <main>
-    <!-- Autenticación -->
-    <section id="auth-view" class="hero">
-      <div class="hero-text">
-        <p class="eyebrow">Recetas con inteligencia artificial</p>
-        <h1>Cocina con lo que ya tienes en casa</h1>
-        <p class="lead">Registra los ingredientes de tu alacena y obtén una receta paso a paso pensada para ellos. Guarda tus favoritas y califícalas.</p>
-        <ul class="features">
-          <li><span>1</span> Anota lo que hay en tu cocina</li>
-          <li><span>2</span> Elige porciones y tipo de comida</li>
-          <li><span>3</span> Recibe tu receta en segundos</li>
-        </ul>
-      </div>
-
-      <div class="card auth-card">
-        <div class="tabs">
-          <button class="tab active" data-tab="login">Iniciar sesión</button>
-          <button class="tab" data-tab="register">Crear cuenta</button>
+  <!-- Autenticación -->
+  <main id="auth-view" class="auth">
+    <section class="auth-intro">
+      <h1>¿Qué hay en tu alacena?</h1>
+      <p class="lead">Anota los ingredientes que tienes en casa y Alacena te propone una receta con ellos, paso a paso.</p>
+      <div class="example" aria-hidden="true">
+        <div class="chips">
+          <span class="chip">arroz <b>500 g</b></span>
+          <span class="chip">huevo <b>4</b></span>
+          <span class="chip">cebolla <b>1</b></span>
+          <span class="chip">plátano maduro <b>2</b></span>
         </div>
-
-        <form id="login-form" class="stack">
-          <label>Usuario o correo <input name="username" required autocomplete="username"></label>
-          <label>Contraseña <input name="password" type="password" required autocomplete="current-password"></label>
-          <button type="submit" class="primary">Entrar a mi cocina</button>
-        </form>
-
-        <form id="register-form" class="stack" hidden>
-          <label>Usuario <input name="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" title="Letras, números y guion bajo"></label>
-          <label>Correo <input name="email" type="email" required maxlength="120"></label>
-          <label>Contraseña <input name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
-          <button type="submit" class="primary">Crear mi cuenta</button>
-        </form>
-        <p id="auth-msg" class="msg" role="alert"></p>
+        <p class="example-result">Arroz con huevo y tajadas, en 30 minutos</p>
       </div>
     </section>
 
-    <!-- Aplicación -->
-    <div id="app-view" hidden>
-      <section class="welcome">
-        <h1 id="greeting">¿Qué cocinamos hoy?</h1>
-        <p class="lead">Mantén tu inventario al día y deja que la IA proponga el plato.</p>
-      </section>
-
-      <div class="grid">
-        <section class="card">
-          <div class="card-head">
-            <h2>Mi alacena</h2>
-            <span id="ingredient-count" class="pill">0 ingredientes</span>
-          </div>
-          <form id="ingredient-form" class="row">
-            <input name="name" placeholder="Ingrediente (ej. arroz)" required maxlength="50">
-            <input name="quantity" type="number" step="any" min="0.01" placeholder="Cantidad" required>
-            <select name="unit" aria-label="Unidad">
-              <option>unidad</option><option>g</option><option>kg</option><option>ml</option>
-              <option>l</option><option>lb</option><option>taza</option><option>cucharada</option>
-              <option>cucharadita</option><option>pizca</option>
-            </select>
-            <button type="submit" id="ingredient-submit" class="primary">Agregar</button>
-            <button type="button" id="ingredient-cancel" class="secondary" hidden>Cancelar</button>
-          </form>
-          <p id="ingredient-msg" class="msg" role="alert"></p>
-          <ul id="ingredient-list" class="pantry"></ul>
-          <p id="ingredient-empty" class="empty">Tu alacena está vacía. Empieza agregando lo que tengas en la nevera.</p>
-        </section>
-
-        <section class="card accent-card">
-          <div class="card-head">
-            <h2>Generar receta</h2>
-          </div>
-          <p class="muted">La receta usará solo los ingredientes de tu alacena (más agua, sal, pimienta y aceite).</p>
-          <form id="generate-form" class="row">
-            <label>Porciones <input name="servings" type="number" min="1" max="12" value="2"></label>
-            <label>Tipo de comida
-              <select name="meal_type">
-                <option value="">Cualquiera</option><option>desayuno</option><option>almuerzo</option>
-                <option>cena</option><option>merienda</option><option>postre</option>
-              </select>
-            </label>
-            <button type="submit" id="generate-btn" class="primary big">Generar con IA</button>
-          </form>
-          <p id="generate-msg" class="msg" role="alert"></p>
-          <div id="latest"></div>
-        </section>
+    <section class="auth-box">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="login" role="tab">Iniciar sesión</button>
+        <button class="tab" data-tab="register" role="tab">Crear cuenta</button>
       </div>
 
-      <section class="history">
-        <div class="card-head">
-          <h2>Mi recetario</h2>
-          <span id="history-count" class="pill">0 recetas</span>
-        </div>
-        <div id="history"></div>
-        <p id="history-empty" class="empty">Aún no has generado recetas. ¡La primera está a un clic!</p>
-      </section>
-    </div>
+      <form id="login-form" class="stack">
+        <label>Usuario o correo <input name="username" required autocomplete="username"></label>
+        <label>Contraseña <input name="password" type="password" required autocomplete="current-password"></label>
+        <button type="submit" class="btn">Iniciar sesión</button>
+      </form>
+
+      <form id="register-form" class="stack" hidden>
+        <label>Usuario <input name="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+" title="Letras, números y guion bajo"></label>
+        <label>Correo <input name="email" type="email" required maxlength="120"></label>
+        <label>Contraseña <input name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
+        <button type="submit" class="btn">Crear cuenta</button>
+      </form>
+      <p id="auth-msg" class="msg" role="alert"></p>
+    </section>
   </main>
 
-  <footer class="footer">
-    Alacena · Proyecto final de Tecnologías Web · Universidad Simón Bolívar 2026-2
-  </footer>
+  <!-- Aplicación -->
+  <main id="app-view" class="app" hidden>
+    <aside class="pantry">
+      <div class="pantry-head">
+        <h2>Tu alacena</h2>
+        <span id="ingredient-count" class="count">0</span>
+      </div>
+
+      <form id="ingredient-form" class="ingredient-form">
+        <label class="full">Ingrediente <input name="name" placeholder="ej. arroz" required maxlength="50"></label>
+        <label>Cantidad <input name="quantity" type="number" step="any" min="0.01" placeholder="500" required></label>
+        <label>Unidad
+          <select name="unit">
+            <option>unidad</option><option>g</option><option>kg</option><option>ml</option>
+            <option>l</option><option>lb</option><option>taza</option><option>cucharada</option>
+            <option>cucharadita</option><option>pizca</option>
+          </select>
+        </label>
+        <div class="form-actions full">
+          <button type="submit" id="ingredient-submit" class="btn">Agregar ingrediente</button>
+          <button type="button" id="ingredient-cancel" class="btn ghost" hidden>Cancelar</button>
+        </div>
+      </form>
+      <p id="ingredient-msg" class="msg" role="alert"></p>
+
+      <ul id="ingredient-list" class="chips pantry-list"></ul>
+      <p id="ingredient-empty" class="empty">Todavía no hay nada. Agrega lo que tengas en la nevera o la despensa.</p>
+    </aside>
+
+    <section class="kitchen">
+      <form id="generate-form" class="generator">
+        <div class="generator-text">
+          <h1 id="greeting">¿Qué cocinamos hoy?</h1>
+          <p>La receta usa solo lo que hay en tu alacena, más agua, sal, pimienta y aceite.</p>
+        </div>
+        <div class="generator-controls">
+          <label>Porciones <input name="servings" type="number" min="1" max="12" value="2"></label>
+          <label>Comida
+            <select name="meal_type">
+              <option value="">Cualquiera</option><option>desayuno</option><option>almuerzo</option>
+              <option>cena</option><option>merienda</option><option>postre</option>
+            </select>
+          </label>
+          <button type="submit" id="generate-btn" class="btn big">Generar receta</button>
+        </div>
+      </form>
+      <p id="generate-msg" class="msg" role="alert"></p>
+
+      <div id="latest">
+        <p class="placeholder">Tu próxima receta aparecerá aquí.</p>
+      </div>
+
+      <section class="saved">
+        <div class="saved-head">
+          <h2>Recetas guardadas</h2>
+          <span id="history-count" class="count">0</span>
+        </div>
+        <div id="history"></div>
+        <p id="history-empty" class="empty">Las recetas que generes se guardan aquí para volver a ellas.</p>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer">Proyecto final de Tecnologías Web, Universidad Simón Bolívar, 2026-2</footer>
 
   <template id="recipe-template">
     <article class="recipe">
-      <header>
-        <h3 class="r-title"></h3>
-        <div class="badges">
-          <span class="badge r-time"></span>
-          <span class="badge r-servings"></span>
-          <span class="badge r-difficulty"></span>
-        </div>
+      <header class="recipe-head">
+        <h2 class="r-title"></h2>
+        <p class="r-meta"></p>
       </header>
       <div class="recipe-body">
-        <div>
-          <h4>Ingredientes</h4>
+        <div class="r-col">
+          <h3>Ingredientes</h3>
           <ul class="r-ingredients"></ul>
         </div>
-        <div>
-          <h4>Preparación</h4>
+        <div class="r-col">
+          <h3>Preparación</h3>
           <ol class="r-steps"></ol>
         </div>
       </div>
-      <footer>
-        <div class="stars" role="group" aria-label="Calificación"></div>
-        <button class="danger-link r-delete">Eliminar</button>
+      <footer class="recipe-foot">
+        <div class="stars" role="group" aria-label="Calificar receta"></div>
+        <button class="text-btn danger r-delete">Eliminar receta</button>
       </footer>
     </article>
   </template>
