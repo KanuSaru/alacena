@@ -141,6 +141,6 @@ def test_un_usuario_no_accede_a_recetas_ni_ingredientes_de_otro(client, fake_llm
 
 def test_pagina_principal_y_favicon(client):
     page = client.get("/")
-    assert page.status_code == 200 and "Recetario IA" in page.text
+    assert page.status_code == 200 and "Alacena" in page.text
     icon = client.get("/favicon.ico")
     assert icon.status_code == 200 and len(icon.content) > 0

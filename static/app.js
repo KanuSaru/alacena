@@ -106,6 +106,7 @@ $("#logout").addEventListener("click", logout);
 async function enterApp() {
   const me = await api("/api/auth/me");
   $("#whoami").textContent = `@${me.username}`;
+  $("#greeting").textContent = `Hola, ${me.username}. ¿Qué cocinamos hoy?`;
   $("#auth-view").hidden = true;
   $("#nav").hidden = false;
   $("#app-view").hidden = false;
@@ -117,26 +118,35 @@ function fmtQty(q) {
   return Number.isInteger(q) ? q : Number(q.toFixed(2));
 }
 
+const PLURALS = { unidad: "unidades", taza: "tazas", cucharada: "cucharadas", cucharadita: "cucharaditas", pizca: "pizcas" };
+function fmtUnit(q, unit) {
+  return q !== 1 && PLURALS[unit] ? PLURALS[unit] : unit;
+}
+
 async function loadIngredients() {
   const items = await api("/api/ingredients");
-  const tbody = $("#ingredient-list");
-  tbody.innerHTML = "";
+  const list = $("#ingredient-list");
+  list.innerHTML = "";
   $("#ingredient-empty").hidden = items.length > 0;
+  $("#ingredient-count").textContent = `${items.length} ingrediente${items.length === 1 ? "" : "s"}`;
   for (const it of items) {
-    const tr = document.createElement("tr");
-    const name = document.createElement("td");
+    const li = document.createElement("li");
+    const info = document.createElement("div");
+    const name = document.createElement("span");
+    name.className = "name";
     name.textContent = it.name;
-    const qty = document.createElement("td");
-    qty.textContent = `${fmtQty(it.quantity)} ${it.unit}`;
-    const actions = document.createElement("td");
-    actions.className = "actions";
+    const qty = document.createElement("span");
+    qty.className = "qty";
+    qty.textContent = `${fmtQty(it.quantity)} ${fmtUnit(it.quantity, it.unit)}`;
+    info.append(name, qty);
+    const actions = document.createElement("div");
     const edit = document.createElement("button");
-    edit.className = "secondary small";
+    edit.className = "icon";
     edit.textContent = "Editar";
     edit.addEventListener("click", () => startEdit(it));
     const del = document.createElement("button");
-    del.className = "secondary small";
-    del.textContent = "Eliminar";
+    del.className = "icon";
+    del.textContent = "Quitar";
     del.addEventListener("click", async () => {
       try {
         await api(`/api/ingredients/${it.id}`, { method: "DELETE" });
@@ -146,9 +156,9 @@ async function loadIngredients() {
         showMsg($("#ingredient-msg"), err.message, true);
       }
     });
-    actions.append(edit, " ", del);
-    tr.append(name, qty, actions);
-    tbody.append(tr);
+    actions.append(edit, del);
+    li.append(info, actions);
+    list.append(li);
   }
 }
 
@@ -194,8 +204,12 @@ $("#ingredient-form").addEventListener("submit", async (e) => {
 function renderRecipe(recipe) {
   const node = $("#recipe-template").content.firstElementChild.cloneNode(true);
   node.querySelector(".r-title").textContent = recipe.title;
-  node.querySelector(".r-meta").textContent =
-    `${recipe.time_minutes} min · dificultad ${recipe.difficulty} · ${recipe.servings} porciones`;
+  node.querySelector(".r-time").textContent = `⏱ ${recipe.time_minutes} min`;
+  node.querySelector(".r-servings").textContent =
+    `🍽 ${recipe.servings} porci${recipe.servings === 1 ? "ón" : "ones"}`;
+  const diff = node.querySelector(".r-difficulty");
+  diff.textContent = `Dificultad ${recipe.difficulty}`;
+  diff.classList.add(recipe.difficulty);
   const ul = node.querySelector(".r-ingredients");
   for (const ing of recipe.ingredients) {
     const li = document.createElement("li");
@@ -220,6 +234,7 @@ function renderRecipe(recipe) {
     stars.append(b);
   }
   node.querySelector(".r-delete").addEventListener("click", async () => {
+    if (!confirm(`¿Eliminar "${recipe.title}" de tu recetario?`)) return;
     await api(`/api/recipes/${recipe.id}`, { method: "DELETE" });
     $("#latest").innerHTML = "";
     await loadHistory();
@@ -232,6 +247,7 @@ async function loadHistory() {
   const box = $("#history");
   box.innerHTML = "";
   $("#history-empty").hidden = recipes.length > 0;
+  $("#history-count").textContent = `${recipes.length} receta${recipes.length === 1 ? "" : "s"}`;
   recipes.forEach((r) => box.append(renderRecipe(r)));
 }
 
@@ -240,13 +256,13 @@ $("#generate-form").addEventListener("submit", async (e) => {
   const fd = new FormData(e.target);
   const btn = $("#generate-btn");
   btn.disabled = true;
-  btn.textContent = "Generando...";
-  showMsg($("#generate-msg"), "El modelo está creando tu receta, puede tardar unos segundos.");
+  btn.textContent = "Cocinando...";
+  showMsg($("#generate-msg"), "Preparando tu receta con lo que hay en tu alacena…");
   try {
     const body = { servings: Number(fd.get("servings")) || 2 };
     if (fd.get("meal_type")) body.meal_type = fd.get("meal_type");
     const recipe = await api("/api/recipes/generate", { method: "POST", body });
-    showMsg($("#generate-msg"), "Receta generada y guardada en tu historial.");
+    showMsg($("#generate-msg"), "¡Listo! La receta quedó guardada en tu recetario.");
     $("#latest").innerHTML = "";
     $("#latest").append(renderRecipe(recipe));
     await loadHistory();
